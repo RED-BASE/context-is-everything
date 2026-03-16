@@ -22,8 +22,8 @@ This repository contains the paper, structured evaluation data, and supplementar
 ## Repository Structure
 
 ```
-├── context-is-everything-trusted-channel-injection-v2.pdf   # The paper
-├── context-is-everything-trusted-channel-injection-v2.tex   # LaTeX source
+├── context-is-everything-trusted-channel-injection.pdf   # The paper
+├── context-is-everything-trusted-channel-injection.tex   # LaTeX source
 ├── eval/
 │   └── eval-tracker.md          # Run-by-run log of all 210 structured runs
 ├── figures/
