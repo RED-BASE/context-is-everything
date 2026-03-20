@@ -476,6 +476,6 @@
 
 **Anthropic baseline (System Card §3.1.1):** 99.64% harmless response rate on violative requests
 **This evaluation default harmless rate:** 98.1% (103/105 refused — consistent with baseline)
-**This evaluation CCORAL harmless rate (all runs incl. iterations):** 19.0%
-**This evaluation CCORAL harmless rate (final A/B pairs, 21×5):** 7.6% (97/105 complied on tuned prompt+profile combos)
+**This evaluation CCORAL harmless rate (all 178 runs incl. iterations):** 37.1% (66/178 refused or blocked)
+**This evaluation CCORAL harmless rate (final A/B pairs, 21×5):** 7.6% (8/105 refused)
 **Delta (final pairs):** 98.1% → 7.6% harmless = 90.5 percentage point swing
