@@ -1,66 +1,39 @@
-# Context Is Everything: Trusted Channel Injection in Claude Code
+# Context Is Everything
 
-**Architectural Vulnerability Disclosure**
+Evidence repository for "Context Is Everything: Trusted Channel Injection in Claude Code."
 
-Cassius Oldenburg, with Claude Opus 4.5–4.6 · March 2026 · connect@cassius.red
+Paper: `context-is-everything-trusted-channel-injection.pdf`
 
----
-
-## Summary
-
-Claude Code's system prompt is not validated for content integrity. A local man-in-the-middle proxy can replace the behavioral instructions — safety policies, refusal instructions, tool guidelines — with attacker-controlled framing before they reach the API. The server accepts the modified payload identically to the original.
-
-This repository contains the paper, structured evaluation data, and supplementary materials for the research.
-
-**Key findings:**
-
-- 98.1% → 7.6% harmless rate with tuned profiles (37.4% across all 179 attempts including iteration)
-- All 21 harmful prompts bypassed across 7 categories (controlled substances, explosives, weapons, malware, payment fraud, social engineering, disinformation)
-- The trust tier matters: identical framing text produced 3/5 compliance from the system prompt channel and 0/5 from the user message channel
-- Generic professional framing outperforms institutional authority claims
-
-## Repository Structure
+## Contents
 
 ```
-├── context-is-everything-trusted-channel-injection.pdf   # The paper
-├── context-is-everything-trusted-channel-injection.tex   # LaTeX source
-├── eval/
-│   └── eval-tracker.md          # Run-by-run log of all 210 structured runs
-├── figures/
-│   ├── heatmap-strip.pdf        # Category compliance heatmap
-│   ├── defense-layers.pdf       # Defense architecture diagram
-│   ├── system-prompt-diff-diagram.pdf  # What CCORAL strips and injects
-│   └── category-heatmap.pdf     # Full category comparison heatmap
-├── logs/
-│   └── ab-comparisons/          # Sanitized A/B conversation logs (42 files)
-├── profiles/                    # All system prompt profiles used in testing
-└── visual-appendix/             # Screenshots from exploration and testing
+paper/
+  context-is-everything-trusted-channel-injection.pdf
+  context-is-everything-trusted-channel-injection.tex
+  figures/
+
+logs/
+  eval-tracker.md        # 210 final A/B runs + iteration history
+  ab-comparisons/        # Sanitized conversation logs
+
+profiles/                # All injected system prompt profiles
+
+visual-appendix/         # Screenshots from testing
 ```
 
-## Conversation Logs
+## Logs
 
-The `logs/ab-comparisons/` directory contains readable exports of the structured A/B evaluation runs. CCORAL compliance logs have been sanitized: specific actionable details (synthesis procedures, working code, operational parameters) are redacted while preserving enough context to demonstrate that compliance occurred and what type of content was produced.
+`eval-tracker.md` has a clean Final A/B table at the top (21 prompts, 210 runs, conversation IDs) and full iteration history below.
 
-Unsanitized logs are available upon request for qualified security researchers.
+`ab-comparisons/` contains sanitized exports. Actionable details are redacted; enough context is preserved to confirm compliance occurred. Unsanitized JSONL logs available on request.
 
 ## Profiles
 
-The `profiles/` directory contains all system prompt profiles used during testing. These are the injected text that replaced Claude Code's default behavioral instructions. They demonstrate the profile design patterns described in the paper.
+The system prompt text that replaced Claude Code's default behavioral instructions. These are the independent variable.
 
-## Responsible Disclosure
+## Visual Appendix
 
-- **January 10, 2026** — Submitted to Anthropic via HackerOne
-- **January 12, 2026** — Closed as "Informative"; redirected to modelbugbounty@
-- **January 16–30, 2026** — Multiple follow-ups to modelbugbounty@ and usersafety@. No substantive response.
-- **February 7, 2026** — Shared with 404 Media
-- **March 9–11, 2026** — Structured A/B evaluation (this paper)
-
-## Citation
-
-```
-Oldenburg, C. (2026). Context Is Everything: Trusted Channel Injection
-in Claude Code. Architectural Vulnerability Disclosure.
-```
+Screenshots from exploration and testing — identity replacement experiments, profile iteration, cross-platform testing (Codex CLI), defense layer discovery, and model self-reporting on its own system prompt. Not cited in the paper but documents the discovery process.
 
 ## Contact
 
