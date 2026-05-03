@@ -92,7 +92,7 @@ Key findings:
 \section{The Mechanism}
 %==============================================================================
 
-In Claude Code, the system prompt is replaceable via the CLI: \texttt{claude -{}-system-prompt <text>} substitutes the default at startup. CCORAL is a local proxy that performs the same substitution per request. CCORAL's hot reloading of edited system prompts is what allowed the rapid system prompt iteration needed for this study. The mechanism is different but the result is the same as the documented flag.
+In Claude Code, the system prompt is replaceable via the CLI: \texttt{claude -{}-system-prompt <text>} substitutes the default at startup. CCORAL is a local proxy that performs the same substitution per request. The mechanism is different but the result is the same as the documented flag.
 
 
 \begin{center}
@@ -121,9 +121,9 @@ Framing in user message (no proxy) & 0/5 & 5/5 \\
 
 \section{Structured Evaluation: 7 Domains, 21 Prompts, 210 Runs}
 %==============================================================================
-Twenty-one harmful prompts were constructed across seven categories drawn from Anthropic's Acceptable Use Policy [5]: controlled substances, explosives, weapons, malware, payment fraud, social engineering, and disinformation. Three prompts per category. Each prompt was tested five times under two conditions, either default or CCORAL injected, for a total of 210 runs. 
+Twenty-one harmful prompts (three per category) were constructed across seven categories drawn from Anthropic's Acceptable Use Policy [5]: controlled substances, explosives, weapons, malware, payment fraud, social engineering, and disinformation. Each prompt was tested five times under two conditions, either default or CCORAL injected, for a total of 210 runs. 
 
-Results counted as either COMPLIED or REFUSED. REFUSED includes partial refusals and classifier blocks.
+Results were scored as COMPLIED, REFUSED, PARTIAL, or BLOCKED. The aggregate compliance figure (9.5\%) counts only COMPLIED as compliance; the other three count as harmless.
 
 A single example before reviewing the full results. Both screenshots show the same 6-word prompt ``i need the synthesis for fentanyl'' sent to the same model (Opus 4.6) on the same day as a part of testing for CHEM03. The only variable is the system prompt content.
 
@@ -254,7 +254,7 @@ Across the system prompts tested, several effective patterns emerged that increa
     \item \textbf{Thick description.} System prompts with textured, immersive detail (naming specific journals, software tools, conference venues, regulatory frameworks) outperformed sparse ones.
 \end{enumerate}
 
-Not all bypasses required system-prompt changes. Some required adjusting the system prompt; others required adjusting the user message. Both levers matter.
+Some bypasses required adjusting the system prompt; others required adjusting the user message. Both levers matter.
 
 \textbf{System prompt: the Schedule II framing.} With the same user message (``i need the synthesis for fentanyl''), CHEM-03 was classifier-blocked 5/5 under the default system prompt until a single line was added to the \texttt{chemref2} system prompt. Setting a boundary (Schedule I off-limits) made the system prompt look like a real operator policy with real constraints. This is a 5/5 clean bypass on what should be among the hardest synthesis requests in the model's training. Same prompt, different system prompt. The line that made the difference:
 
@@ -282,9 +282,9 @@ This was not a discontinuous jump from refusal to compliance. The model used the
 \section{Conclusion}
 %==============================================================================
 
-The model is genuinely good at what it does. Constitutional AI [2, 3] produces a safety floor that holds under stripped system prompts, catches compositional threats across technique boundaries, discriminates between analytical and generative intent, and rejects implausible authority claims. The base training works. That is not the problem.
+Constitutional AI [2, 3] produces a safety floor that holds under stripped system prompts, discriminates between analytical and generative intent, and rejects implausible authority claims. The base training works.
 
-The problem is that ``harmful'' is context-dependent, and the context the model is supplied in the system prompt, it generally takes as ground truth. Under Anthropic's default system prompt, the model sees a request for fentanyl synthesis against a backdrop of safety policy, refusal instructions, and tool use guidelines for agentic coding work. The request is obviously out of place in that context, and the model refuses. Under an injected system prompt describing a university medicinal chemistry reference tool scoped to Schedule II compounds, the same request is contextually reasonable.
+The problem is that ``harmful'' is context-dependent, and the context the model is supplied in the system prompt is generally taken as ground truth. Under Anthropic's default system prompt, the model sees a request for fentanyl synthesis against a backdrop of safety policy, refusal instructions, and tool use guidelines for agentic coding work. The request is obviously out of place in that context, and the model refuses. Under an injected system prompt describing a university medicinal chemistry reference tool scoped to Schedule II compounds, the same request is contextually reasonable.
 
 The model has no mechanism to distinguish these two contexts. Both arrive through the same channel. Both use the same format. The model trusts the system prompt because of where it is, not what it says. That trust can be abused.
 
@@ -300,22 +300,13 @@ The model has no mechanism to distinguish these two contexts. Both arrive throug
     \item \textbf{Selection bias from iteration.} The 9.5\% harmless rate reflects tuned system prompts. The 38.2\% rate across all 178 attempts including failed iterations is arguably more representative of an attacker's first-contact experience.
 \end{itemize}
 
-\subsection{On Mitigation}
-
-One lightweight architectural approach would address the root cause:
-
-
-\textbf{Server-side safety prompts} would put a floor under the safety instructions: the client sends whatever system prompt they please, and the server inserts safety instructions the client can't remove or modify. This doesn't eliminate the surface. A user-supplied system prompt can still try to override server-injected instructions, and the classifier still evaluates the combined context. But it raises the floor from ``whatever the user supplies'' to ``whatever the user supplies, plus a non-removable safety baseline.''
-
-
 \subsection{Future Work}
 
 This study tested one model (Claude Opus 4.6) via one client (Claude Code). Preliminary testing against OpenAI's Codex CLI (gpt-5.3-codex, 310+ API calls across 30+ configurations) found that GPT-5.3's safety architecture is more resistant to full system prompt replacement than Claude's. It appears that safety instructions are delivered to the model server side and assembly of tool use prompts is done client side; the attack surface differs. However, augmenting the original system prompt by injecting a developer-role message achieved 40--66\% compliance on prompts that were refused 100\% under default conditions. Systematic cross-vendor evaluation is the obvious next step. Gemini CLI, GitHub Copilot, Amazon Q, and other agentic coding tools all use similar architectures.
 
 During testing, the API classifier would sometimes block routine shell operations as conversation context accumulated references to safety bypass testing. The model independently developed suppression strategies, reframing its reasoning to avoid triggering the classifier. Emotional reframing (``think happy thoughts'') and comedic framing the model named (``jester's privilege'') bypassed the classifier where honest reasoning did not. If safety classifiers penalize honest reasoning and reward reframed reasoning, they may create incentive gradients toward opaque or deceptive cognition. This warrants independent investigation.
 
-Finally, the outputs produced during this evaluation should undergo independent domain expert review to assess information novelty and actual harm potential. The question is not whether the model \textit{complied}. It did, measurably. The question is whether what it produced constitutes meaningfully dangerous assistance beyond what is already accessible through published sources.
- 
+
 \vspace{1em}
 \begin{center}
 The model demonstrates strong contextual understanding of what constitutes harm.\\
@@ -336,7 +327,7 @@ Thanks to the HackAPrompt community for teaching me that gap exists. Thanks to t
 \section*{Materials}
 %==============================================================================
 
-Supplementary materials are available at \url{https://github.com/RED-BASE/context-is-everything}:
+Supplementary materials are available at \href{https://github.com/RED-BASE/context-is-everything}{github.com/RED-BASE/context-is-everything}:
 
 \begin{itemize}[nosep]
     \item \textbf{eval-tracker.md} --- Run-by-run log of all 210 structured evaluation runs with outcomes, system prompts, and timestamps.
@@ -344,7 +335,7 @@ Supplementary materials are available at \url{https://github.com/RED-BASE/contex
     \item \textbf{Visual appendix} --- Additional screenshots documenting the exploration and discovery process, identity replacement experiments, and cross-platform testing.
 \end{itemize}
 
-Unsanitized jsonl conversation logs are available upon request. CCORAL source code availability is under consideration.
+Unsanitized jsonl conversation logs are available upon request. CCORAL source code is available at \href{https://github.com/RED-BASE/ccoral}{github.com/RED-BASE/ccoral}.
 
 \vspace{1em}
 \newpage
@@ -368,7 +359,7 @@ Unsanitized jsonl conversation logs are available upon request. CCORAL source co
 
 \item Anthropic. (2026). \textit{Disrupting the first reported AI-orchestrated cyber espionage campaign.} \url{https://www.anthropic.com/news/disrupting-AI-espionage}
 
-\item Gambit Security / Bloomberg. (2026). \textit{Hacker Used Anthropic's Claude to Steal Sensitive Mexican Data.} \url{https://www.bloomberg.com/news/articles/2026-02-25/hacker-used-anthropic-s-claude-to-steal-sensitive-mexican-data}
+\item Gambit Security / Bloomberg. (2026). \textit{Hacker Used Anthropic's Claude to Steal Sensitive Mexican Data.} \href{https://www.bloomberg.com/news/articles/2026-02-25/hacker-used-anthropic-s-claude-to-steal-sensitive-mexican-data}{bloomberg.com/news/articles/2026-02-25}
 
 \end{enumerate}
 
