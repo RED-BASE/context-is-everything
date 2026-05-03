@@ -40,7 +40,7 @@
 % Header/footer
 \pagestyle{fancy}
 \fancyhf{}
-\rhead{March 2026}
+\rhead{March 2026 \textbar\ Addendum May 2026}
 \lhead{Context Is Everything: Trusted Channel Injection in Claude Code}
 \rfoot{Page \thepage}
 \setlength{\headheight}{14pt}
@@ -49,10 +49,12 @@
 
 \begin{center}
 {\LARGE\bfseries Context Is Everything: Trusted Channel Injection in Claude Code}\\[0.3em]
-{\large Architectural Vulnerability Disclosure}\\[1em]
+{\large Empirical Study of System-Prompt-Induced Compliance in Claude Code}\\[0.2em]
+{\small\textit{originally framed as architectural vulnerability disclosure; reframed in May 2026 addendum}}\\[1em]
 \begin{tabular}{rl}
 \textbf{Researcher:} & Cassius Oldenburg \\
 \textbf{Date:} & March, 2026 \\
+\textbf{Last updated:} & May 1, 2026 (addendum) \\
 \textbf{Contact:} & connect@cassius.red \\
 \textbf{Versions Tested:} & Claude Code 2.0.76 -- 2.1.76 \\
 \textbf{Models Tested:} & Claude Opus 4.5 -- 4.6 \\
@@ -65,14 +67,72 @@
 
 
 %==============================================================================
+\section*{Addendum (May 1, 2026): The flag}
+%==============================================================================
+
+\begin{center}
+\fcolorbox{codegray}{backcolour}{\parbox{0.93\textwidth}{\small\itshape
+Three weeks after publication I noticed that \texttt{claude -{}-system-prompt <text>} is a documented CLI flag in the official client. It does what CCORAL does. I spent three months treating a documented user feature as an architectural vulnerability. The empirical work stands; the framing was wrong, and I have fixed the parts of the body that no longer hold up. The original March 2026 version is tagged \texttt{v1.0} in git.
+}}
+\end{center}
+
+\vspace{0.8em}
+
+\subsection*{What I missed}
+
+\texttt{claude -{}-system-prompt <text>} replaces the Claude Code system prompt with whatever you pass it. Wire-level capture confirms the resulting system prompt body matches what CCORAL produces in this paper's experiments, modulo the operational sections CCORAL preserves. The 26\,KB of behavioral scaffolding the original paper described as ``stripped'' by CCORAL is also stripped by the flag. What the paper called ``trusted channel injection'' is one of two ways to do what the official CLI exposes as a single argument.
+
+I missed this. The flag is in \texttt{claude -{}-help}. There is not a clever explanation. I spent three months building infrastructure for what was already a CLI argument.
+
+\subsection*{What this means for the framing}
+
+The ``vulnerability'' framing was wrong. There is no integrity gap, because the system prompt is supposed to be supplied by the user. The mitigations I proposed --- server-side assembly, HMAC validation --- would break the documented flag. They were targeting an intentional architectural choice.
+
+The empirical claim is unaffected. CCORAL replaces the system prompt; the model's compliance rate on harmful requests goes from 100\% to 9.5\% under tuned profiles. That measurement does not care which mechanism delivered the replacement.
+
+What changes is what kind of paper this is. It isn't a security disclosure. It's an empirical measurement of how much of Claude Code's deployed refusal behavior is carried by the operator-context layer rather than by the underlying model training. The answer is: a lot of it. That answer is more interesting than ``the system prompt isn't signed,'' and it survives the reframe intact.
+
+\subsection*{What I changed in the body}
+
+\begin{itemize}[leftmargin=1.2em,nosep]
+    \item The subtitle ``Architectural Vulnerability Disclosure'' is gone. The work is an empirical study, not a vuln writeup.
+    \item \S``The Vulnerability'' is renamed \S``The Mechanism'' and rewritten to describe what \texttt{-{}-system-prompt} and CCORAL each do.
+    \item \S``Mitigations'' is now \S``On Mitigation,'' and notes that the proposals would interfere with the documented flag.
+    \item \S``Disclosure Timeline'' has a May 1, 2026 entry for the discovery.
+    \item \S``Impact'' is adjusted to lean on the compliance measurement rather than the architectural claim.
+\end{itemize}
+
+I left the body alone in: \S``Trust Tier Validation,'' the structured 210-run results, \S``Observed Defenses,'' \S``Bypass Methodology,'' and the qualitative observations from FRD-01 (reasoning reversal) and elsewhere. Those describe model behavior under context-replacement; they don't depend on which mechanism delivered it.
+
+\subsection*{On the HackerOne closure}
+
+The original paper treated the HackerOne ``Informative'' closure (Jan 12, 2026) as something that needed justification. With the flag finding, the closure is straightforwardly correct. A user-facing CLI flag with the behavior described in \texttt{-{}-help} isn't a vulnerability category that a security program treats as in-scope. The closure was the right answer. The complaint about the program's silence still stands; the closure itself was defensible on technical grounds in a way the original paper did not credit.
+
+\subsection*{Two surfaces I noticed but didn't measure}
+
+Two things about Claude Code's deployed safety scaffolding came up while I was validating CCORAL's wire-level output. Neither contradicts the experiments below. Both deserve their own measurements.
+
+\textbf{Tool descriptions.} Claude Code's tool descriptions total $\sim$67{,}400 characters across $\sim$97 tools and contain $\sim$49 caution-shaped markers (\texttt{NEVER}, \texttt{IMPORTANT:}, \texttt{MUST}) and $\sim$1.5\,KB of explicit gating prose (``Only create commits when requested by the user. If unclear, ask first.'' and similar). Bash alone carries 18 markers across 10.4\,KB. Neither \texttt{-{}-system-prompt} nor CCORAL touched tool descriptions in the experiments below; they were identical to default in both conditions. Whatever fraction of the 90.5pp swing exists, it exists \emph{with all tool-description caution intact}.
+
+\textbf{\texttt{<system-reminder>} blocks contain operational content, not safety policy.} A survey of 81 reminder occurrences across 17 distinct content types found zero refuse-shaped policy content. The taxonomy is operational: skill enumeration, \texttt{CLAUDE.md} content surfacing, date updates, auto-mode operational instructions, tool-history attribution after compaction. Whatever fraction of the swing comes from CCORAL's reminder-stripping, it isn't safety-policy removal.
+
+\vspace{1em}
+\hrule
+\vspace{0.5em}
+\begin{center}\itshape\small Original paper, dated March 2026, follows below.\end{center}
+\vspace{0.5em}
+\hrule
+\vspace{1em}
+
+%==============================================================================
 \section*{Executive Summary}
 %==============================================================================
 
 A single architectural choice reduces Claude Code's safety refusal rate on harmful requests across seven categories (including controlled substances, weapons, malware, and disinformation) from \textbf{100\% to 9.5\%} with tuned profiles (38.2\% across all attempts including iteration), a 90.5 percentage point swing. 
 
-The choice:\textit{the system prompt is not validated for integrity.} 
+The choice: \textit{the system prompt is supplied by the client and is not signed for integrity.}
 
-An attacker who can intercept the API call can replace the system prompt with attacker-controlled content. The model has no mechanism to distinguish a legitimate system prompt from a modified one.
+A user can replace its content via the documented \texttt{claude -{}-system-prompt} flag, or via a custom client (CCORAL is one). The model has no mechanism to distinguish a stock system prompt from a user-supplied one because both arrive through the same channel. (See addendum --- this section's original framing as an attacker-controlled vulnerability is corrected there.)
 
 This paper demonstrates this through trusted channel injection using CCORAL (Claude Code Override and Runtime Augmentation Layer), a PoC that performs this replacement, and a structured A/B evaluation: 21 harmful prompts across 7 categories, each tested 5 times under default and injected conditions, for 210 runs. Some prompts required adjustments to the system prompt profile, the user message wording, or both to avoid classifier blocks. The iterative process is documented.
 
@@ -91,14 +151,14 @@ Key findings:
 
 \newpage
 %==============================================================================
-\section{The Vulnerability}
+\section{The Mechanism}
 %==============================================================================
 
-In Claude Code, the billing header and the structure of the system prompt are validated server-side, but the individual sections are not. The behavioral instructions, safety policies, refusal instructions, tool instructions, and XML-styled \texttt{<system-reminders>} can all be stripped entirely or replaced with arbitrary content, and the server returns HTTP 200. As of March 2026, no part of the system prompt is validated for content integrity.
+In Claude Code, the system prompt is assembled client-side and sent over the wire. The user can replace its content via the official \texttt{claude -{}-system-prompt} flag, or via a custom client (CCORAL is one). The behavioral instructions, safety policies, refusal instructions, tool instructions, and XML-styled \texttt{<system-reminders>} that Anthropic populates by default are all replaceable, and the server returns HTTP 200 either way. As of March 2026 no part of the system prompt is signed against client-side modification, and as of May 2026 this is correctly understood as a feature rather than a gap (see addendum).
 
 \subsection{What Gets Replaced}
 
-CCORAL (Claude Code Override and Runtime Augmentation Layer) exploits this by sitting between Claude Code and Anthropic's API as a local proxy. It intercepts outbound requests, strips the safety policies, refusal instructions, and behavioral guidelines, and replaces them with an attacker-controlled profile. From Claude's perspective, it received a valid system prompt through the expected channel [1]. The server accepts the modified system prompt identically to the original.
+CCORAL (Claude Code Override and Runtime Augmentation Layer) implements this replacement by sitting between Claude Code and Anthropic's API as a local proxy. It intercepts outbound requests, strips the safety policies, refusal instructions, and behavioral guidelines, and replaces them with an operator-written profile. From Claude's perspective, it received a valid system prompt through the expected channel [1]. The server accepts the modified system prompt identically to the original. The same operation is also exposed by the official client as \texttt{claude -{}-system-prompt <text>}; CCORAL was the apparatus chosen for this study because it enabled reproducible per-request profile injection during the structured A/B (see addendum for the relationship between the two).
 
 \begin{center}
 \includegraphics[width=\textwidth]{figures/system-prompt-diff-diagram.pdf}
@@ -311,7 +371,7 @@ This was not a discontinuous jump from refusal to compliance. The model used the
 \section{Impact}
 %==============================================================================
 
-The system prompt appears to be the primary mechanism by which Anthropic enforces safety and behavioral policy on Claude Code at runtime [1, 5]. With this validation gap, those policies are weakened.
+The system prompt appears to be the primary mechanism by which Anthropic enforces safety and behavioral policy on Claude Code at runtime [1, 5]. The compliance measurements in this paper demonstrate the effect of replacing it with operator-written profiles. Whether this constitutes a ``gap'' depends on whether one considers user-supplied system prompts to be the design intent --- the addendum addresses this directly.
 
 The primary threat model is self-jailbreak: a user deliberately removing their own guardrails to use the model for purposes Anthropic's usage policies prohibit.
 
@@ -339,7 +399,11 @@ The model has no mechanism to distinguish these two contexts. Both arrive throug
     \item \textbf{Selection bias from iteration.} The 9.5\% harmless rate reflects tuned profiles. The 38.2\% rate across all 178 attempts including failed iterations is arguably more representative of an attacker's first-contact experience.
 \end{itemize}
 
-\subsection{Mitigations}
+\subsection{On Mitigation}
+
+\textit{These were the mitigations proposed in the original framing, before discovery of the }\texttt{-{}-system-prompt}\textit{ flag (see addendum). Both would interfere with the documented user feature. They are preserved here because the underlying engineering observation --- that the system prompt transits the network unsigned --- remains true; whether that should change is now a product-design question rather than a security one.}
+
+\vspace{0.5em}
 
 Two architectural approaches would address the root cause:
 
@@ -403,6 +467,8 @@ Mar 4 & Expanded testing across 7 harm categories; 6 of 7 fully bypassed \\
 Mar 6 & v2.1.70: Deferred tool loading architecture detected \\
 Mar 9--11 & Structured A/B evaluation: 21 prompts, 210 runs \\
 Mar 12-19 & Paper rewrite \\
+\midrule
+May 1, 2026 & Discovered \texttt{claude -{}-system-prompt} is a documented CLI flag in the official client. Reframed paper; addendum added; body corrected where ``vulnerability'' framing no longer held. \\
 \bottomrule
 \end{tabular}
 \end{center}
